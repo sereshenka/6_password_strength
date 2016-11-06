@@ -60,10 +60,12 @@ def get_password_strength(password,password_list):
 
 
 def read_blacklist(blacklist):
-    with open (blacklist, 'r') as bl:
-        password_list = re.findall(r'\w+', bl.read().lower())
-    print (set( password_list))
-    return set( password_list)
+    try:
+        with open (blacklist, 'r') as bl:
+            password_list = re.findall(r'\w+', bl.read().lower())
+        return set( password_list)
+    except ValueError:
+        return None
 
 
 def print_results(points):
@@ -89,10 +91,14 @@ if __name__ == '__main__':
                       'Будет загружен стандартный blacklist')
             if blacklist is None:
                 password_list = []
-                print('Blacklist не скачался.Оценка будет призводиться' \
+                print('Blacklist не скачался.Оценка будет производиться ' \
                       'без его учета')
             else:
                 password_list = read_blacklist(blacklist)
+            if password_list is None:
+                print('Неправильный формат blacklist.Оценка будет производиться ' \
+                      'без его учета')
+                password_list = []
         password = passwords[0]
         points = get_password_strength(password, password_list)
         print_results(points)
