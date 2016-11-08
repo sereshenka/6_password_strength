@@ -36,7 +36,7 @@ def check_blacklist(local_blacklist, url_blacklist):
     else:
         if os.path.exists(local_blacklist):
             if read_blacklist(local_blacklist) is not None:
-                return read_blacklist(local_blacklist), 4
+                return read_blacklist(local_blacklist), 3
             else:
                 return get_blacklist(url_blacklist), 2
         else:
