@@ -15,18 +15,34 @@ def read_arguments():
                        , default = url_default)
     parser.add_argument('--blacklist', help = 'Укажите фаил с blacklist')
     if len(parser.parse_args().password) > 1:
-        return None, None, None, 1
-    password = parser.parse_args().password
+        return None, None, 1
+    passwords = parser.parse_args().password
     url_blacklist = parser.parse_args().url
     local_blacklist = parser.parse_args().blacklist
-    if local_blacklist is not None:
-        if os.path.exists(local_blacklist):
-            return password, parser, local_blacklist, None
-        else:
-            return password, parser, get_blacklist(url_blacklist), 2
-    else:
-        return password, parser, get_blacklist(url_blacklist), None
+    return passwords, local_blacklist ,url_blacklist
 
+
+def check_blacklist(local_blacklist, url_blacklist):
+    """
+    4 переменная - это состояние. если возвращает 1 -
+    в пароле содержатся пробелы.
+    2 - local blacklist не прошел проверку на os.path.exists,
+    идет загрузка url_blacklist
+    3 - local_blacklist существует, но прочитать нельзя, не тот формат,
+    идет загрузка url_blacklist
+    4 - передается local_blacklist
+    """
+    if local_blacklist is None:
+        return get_blacklist(url_blacklist), None
+    else:
+        if os.path.exists(local_blacklist):
+            if read_blacklist(local_blacklist) is not None:
+                return read_blacklist(local_blacklist), 4
+            else:
+                return get_blacklist(url_blacklist), 3
+        else:
+            return get_blacklist(url_blacklist), 2
+    
 
 def get_blacklist(url_blacklist):
     destination = os.path.join(tmpdirectory,'blacklist.txt')
@@ -36,8 +52,17 @@ def get_blacklist(url_blacklist):
         return None
     if not os.path.exists(destination):
         return None
-    return destination
-        
+    return read_blacklist(destination)
+
+
+def read_blacklist(blacklist):
+    try:
+        with open (blacklist, 'r') as bl:
+            password_list = re.findall(r'\w+', bl.read().lower())
+        return set( password_list)
+    except ValueError:
+        return None        
+
 
 def get_password_strength(password,password_list):
     if len(password) <= 6:
@@ -59,15 +84,6 @@ def get_password_strength(password,password_list):
     return points
 
 
-def read_blacklist(blacklist):
-    try:
-        with open (blacklist, 'r') as bl:
-            password_list = re.findall(r'\w+', bl.read().lower())
-        return set( password_list)
-    except ValueError:
-        return None
-
-
 def print_results(points):
     if points == 1:
         print('Пароль слишком короткий:', points, 'из 10')
@@ -81,25 +97,22 @@ def print_results(points):
     
 if __name__ == '__main__':
     while True:
+        passwords, local_blacklist ,url_blacklist = read_arguments()
         with tempfile.TemporaryDirectory() as tmpdirectory:
-            passwords, parser, blacklist, state = read_arguments()
-            if state == 1:
-                print('Пароль не может содержать пробелов')
-                break
-            if state == 2 :
-                print('Неправильно указан путь до blacklist\его не существует.'\
-                      'Будет загружен стандартный blacklist')
-            if blacklist is None:
-                password_list = []
-                print('Blacklist не скачался.Оценка будет производиться ' \
-                      'без его учета')
-            else:
-                password_list = read_blacklist(blacklist)
-            if password_list is None:
-                print('Неправильный формат blacklist.Оценка будет производиться ' \
-                      'без его учета')
-                password_list = []
+            blacklist, state = check_blacklist(local_blacklist, url_blacklist)
+        if state == 1:
+            print('Пароль не может содержать пробелов')
+            break
+        if state == 2 :
+            print('Неправильно указан путь до blacklist\его не существует.'\
+                    'Будет загружен стандартный blacklist')
+        if state == 3:
+            print('Неправильный формат.'\
+                    'Будет загружен стандартный blacklist')
+        if blacklist is None:
+            print('Blacklist не скачался')
+            blacklist = []
         password = passwords[0]
-        points = get_password_strength(password, password_list)
+        points = get_password_strength(password, blacklist)
         print_results(points)
         break
