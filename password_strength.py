@@ -15,22 +15,21 @@ def read_arguments():
                        , default = url_default)
     parser.add_argument('--blacklist', help = 'Укажите фаил с blacklist')
     if len(parser.parse_args().password) > 1:
-        return None, None, 1
+        return None, None, None
     passwords = parser.parse_args().password
     url_blacklist = parser.parse_args().url
     local_blacklist = parser.parse_args().blacklist
-    return passwords, local_blacklist ,url_blacklist
+    return passwords, local_blacklist, url_blacklist
 
 
 def check_blacklist(local_blacklist, url_blacklist):
     """
-    4 переменная - это состояние. если возвращает 1 -
-    в пароле содержатся пробелы.
-    2 - local blacklist не прошел проверку на os.path.exists,
+    2 в return переменная - это состояние. 
+    1 - local blacklist не прошел проверку на os.path.exists,
     идет загрузка url_blacklist
-    3 - local_blacklist существует, но прочитать нельзя, не тот формат,
+    2 - local_blacklist существует, но прочитать нельзя, не тот формат,
     идет загрузка url_blacklist
-    4 - передается local_blacklist
+    3 - передается local_blacklist
     """
     if local_blacklist is None:
         return get_blacklist(url_blacklist), None
@@ -39,9 +38,9 @@ def check_blacklist(local_blacklist, url_blacklist):
             if read_blacklist(local_blacklist) is not None:
                 return read_blacklist(local_blacklist), 4
             else:
-                return get_blacklist(url_blacklist), 3
+                return get_blacklist(url_blacklist), 2
         else:
-            return get_blacklist(url_blacklist), 2
+            return get_blacklist(url_blacklist), 1
     
 
 def get_blacklist(url_blacklist):
@@ -98,15 +97,15 @@ def print_results(points):
 if __name__ == '__main__':
     while True:
         passwords, local_blacklist ,url_blacklist = read_arguments()
-        with tempfile.TemporaryDirectory() as tmpdirectory:
-            blacklist, state = check_blacklist(local_blacklist, url_blacklist)
-        if state == 1:
+        if passwords is None:
             print('Пароль не может содержать пробелов')
             break
-        if state == 2 :
+        with tempfile.TemporaryDirectory() as tmpdirectory:
+            blacklist, state = check_blacklist(local_blacklist, url_blacklist)
+        if state == 1 :
             print('Неправильно указан путь до blacklist\его не существует.'\
                     'Будет загружен стандартный blacklist')
-        if state == 3:
+        if state == 2:
             print('Неправильный формат.'\
                     'Будет загружен стандартный blacklist')
         if blacklist is None:
