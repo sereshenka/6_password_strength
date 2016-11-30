@@ -15,11 +15,19 @@ def read_arguments():
                        , default = url_default)
     parser.add_argument('--blacklist', help = 'Укажите фаил с blacklist')
     if len(parser.parse_args().password) > 1:
-        return None, None, None
+        return {
+        'passwords': None,
+        'local_blacklist': None,
+        'url_blacklist': None
+        }
     passwords = parser.parse_args().password
     url_blacklist = parser.parse_args().url
     local_blacklist = parser.parse_args().blacklist
-    return passwords, local_blacklist, url_blacklist
+    return {
+        'passwords': passwords,
+        'local_blacklist': local_blacklist,
+        'url_blacklist': url_blacklist
+        }
 
 
 def check_blacklist(local_blacklist, url_blacklist):
@@ -57,8 +65,8 @@ def get_blacklist(url_blacklist):
 def read_blacklist(blacklist):
     try:
         with open (blacklist, 'r') as bl:
-            password_list = re.findall(r'\w+', bl.read().lower())
-        return set( password_list)
+            password_list = re.findall(r'\w+[^\n]+', bl.read().lower())
+        return set(password_list)
     except ValueError:
         return None        
 
@@ -70,16 +78,15 @@ def get_password_strength(password,password_list):
         return 2
     if password in password_list:
         return 3
-    point = 3
-    points = 0
+    points = 3
     if re.search(r'[a-zа-я]', password) is not None:
-        points = point + 1
+        points += 1
     if re.search(r'[A-ZА-Я]', password) is not None:
-        points = point + 2
+        points += 2
     if re.search(r'[0-9]', password) is not None:
-        points = point + 2
+        points += 2
     if re.search(r'\W', password) is not None:
-        points = point + 2
+        points += 2
     return points
 
 
@@ -96,12 +103,14 @@ def print_results(points):
     
 if __name__ == '__main__':
     while True:
-        passwords, local_blacklist ,url_blacklist = read_arguments()
-        if passwords is None:
+        argparse_dictionary = read_arguments()
+        if argparse_dictionary['passwords'] is None:
             print('Пароль не может содержать пробелов')
             break
         with tempfile.TemporaryDirectory() as tmpdirectory:
-            blacklist, state = check_blacklist(local_blacklist, url_blacklist)
+            blacklist, state = check_blacklist \
+                    (argparse_dictionary['local_blacklist'],
+                     argparse_dictionary['url_blacklist'])
         if state == 1 :
             print('Неправильно указан путь до blacklist\его не существует.'\
                     'Будет загружен стандартный blacklist')
@@ -111,7 +120,7 @@ if __name__ == '__main__':
         if blacklist is None:
             print('Blacklist не скачался')
             blacklist = []
-        password = passwords[0]
+        password = argparse_dictionary['passwords'][0]
         points = get_password_strength(password, blacklist)
         print_results(points)
         break
