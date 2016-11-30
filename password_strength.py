@@ -3,9 +3,11 @@ import os
 import tempfile
 import urllib.request
 import re
+from functools import lru_cache
 
 
-def read_arguments():
+@lru_cache(maxsize=None)
+def input_arguments():
     parser = argparse.ArgumentParser('Скрипт оценивает сложность пароля')
     parser.add_argument('--password', help = 'Укажите пароль ', \
                         required = True, nargs = '+')
@@ -30,7 +32,7 @@ def read_arguments():
         }
 
 
-def check_blacklist(local_blacklist, url_blacklist):
+def choice_blacklist(local_blacklist, url_blacklist):
     """
     2 в return переменная - это состояние. 
     1 - local blacklist не прошел проверку на os.path.exists,
@@ -43,8 +45,8 @@ def check_blacklist(local_blacklist, url_blacklist):
         return get_blacklist(url_blacklist), None
     else:
         if os.path.exists(local_blacklist):
-            if read_blacklist(local_blacklist) is not None:
-                return read_blacklist(local_blacklist), 3
+            if open_blacklist(local_blacklist) is not None:
+                return open_blacklist(local_blacklist), 3
             else:
                 return get_blacklist(url_blacklist), 2
         else:
@@ -59,24 +61,24 @@ def get_blacklist(url_blacklist):
         return None
     if not os.path.exists(destination):
         return None
-    return read_blacklist(destination)
+    return open_blacklist(destination)
 
 
-def read_blacklist(blacklist):
+def open_blacklist(blacklist):
     try:
         with open (blacklist, 'r') as bl:
-            password_list = re.findall(r'\w+[^\n]+', bl.read().lower())
-        return set(password_list)
+            passwords_from_blacklist = re.findall(r'\w+[^\n]+', bl.read())
+        return passwords_from_blacklist
     except ValueError:
         return None        
 
 
-def get_password_strength(password,password_list):
+def get_password_strength(password,passwords_from_blacklist):
     if len(password) <= 6:
         return 1
     if len(set(password.lower())) == 1:
         return 2
-    if password in password_list:
+    if password in passwords_from_blacklist:
         return 3
     points = 3
     if re.search(r'[a-zа-я]', password) is not None:
@@ -103,12 +105,18 @@ def print_results(points):
     
 if __name__ == '__main__':
     while True:
-        argparse_dictionary = read_arguments()
+        argparse_dictionary = input_arguments()
         if argparse_dictionary['passwords'] is None:
             print('Пароль не может содержать пробелов')
             break
+        '''
+        Использую tmpdirectory,чтобы сохранить туда Blacklist
+        и чтобы не захламлять диск пользователя ненужными ему фаилами\словарями
+        (если он захочет,он сам может его скачать и использовать, как локальный
+        blacklist)
+        '''
         with tempfile.TemporaryDirectory() as tmpdirectory:
-            blacklist, state = check_blacklist \
+            blacklist, state = choice_blacklist \
                     (argparse_dictionary['local_blacklist'],
                      argparse_dictionary['url_blacklist'])
         if state == 1 :
