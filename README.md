@@ -6,6 +6,6 @@
 #Как запустить?#
 Example: *python3 password_strength.py --password your_password*
 
-Example: *python3 password_strength.py --password your_password --url_blacklist your_url*
+Example: *python3 password_strength.py --password your_password --url your_url*
 
-Example: *python3 password_strength.py --password your_password --local_blacklist your_path*
+Example: *python3 password_strength.py --password your_password --blacklist your_path*
