@@ -104,31 +104,31 @@ def print_results(points):
 
     
 if __name__ == '__main__':
-    while True:
-        argparse_dictionary = input_arguments()
-        if argparse_dictionary['passwords'] is None:
-            print('Пароль не может содержать пробелов')
-            break
+    argparse_dictionary = input_arguments()
+    if argparse_dictionary['passwords'] is None:
+        print('Пароль не может содержать пробелов')
+        exit()
         '''
         Использую tmpdirectory,чтобы сохранить туда Blacklist
         и чтобы не захламлять диск пользователя ненужными ему фаилами\словарями
         (если он захочет,он сам может его скачать и использовать, как локальный
         blacklist)
         '''
-        with tempfile.TemporaryDirectory() as tmpdirectory:
-            blacklist, state = choice_blacklist \
-                    (argparse_dictionary['local_blacklist'],
-                     argparse_dictionary['url_blacklist'])
-        if state == 1 :
-            print('Неправильно указан путь до blacklist\его не существует.'\
-                    'Будет загружен стандартный blacklist')
-        if state == 2:
-            print('Неправильный формат.'\
-                    'Будет загружен стандартный blacklist')
-        if blacklist is None:
-            print('Blacklist не скачался')
-            blacklist = []
-        password = argparse_dictionary['passwords'][0]
-        points = get_password_strength(password, blacklist)
-        print_results(points)
-        break
+    with tempfile.TemporaryDirectory() as tmpdirectory:
+        blacklist, state = choice_blacklist(
+                 argparse_dictionary['local_blacklist'],
+                 argparse_dictionary['url_blacklist']
+                 )
+    if state == 1 :
+        print('Неправильно указан путь до blacklist\его не существует.'\
+                'Будет загружен стандартный blacklist')
+    if state == 2:
+        print('Неправильный формат.'\
+                'Будет загружен стандартный blacklist')
+    if blacklist is None:
+        print('Blacklist не скачался')
+        blacklist = []
+    password = argparse_dictionary['passwords'][0]
+    points = get_password_strength(password, blacklist)
+    print_results(points)
+    exit()
