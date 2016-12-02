@@ -80,7 +80,10 @@ def get_password_strength(password,passwords_from_blacklist):
         return 2
     if password in passwords_from_blacklist:
         return 3
-    points = 3
+    return if_points_are_greater_than_three(3, password)
+
+
+def if_points_are_greater_than_three(points, password): 
     if re.search(r'[a-zа-я]', password) is not None:
         points += 1
     if re.search(r'[A-ZА-Я]', password) is not None:
